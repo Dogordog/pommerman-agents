@@ -1,0 +1,85 @@
+"""
+
+Observation space
+What is in the obs object passed to the agent
+
+"""
+
+obs is a dict() with the following keys:
+
+alive
+
+- A list of agents that are still alive, specified by agent_id (10, 11, 12, 13)
+
+board
+
+- A uint8 numpy array of shape (11, 11), with the following index
+
+0 - passage
+1 - rigid wall
+2 - wood wall
+3 - bomb
+4 - flames
+5 - fog
+6 - extra bomb item
+7 - extra firepower item
+8 - kick
+9 - skull
+10 - 13: agents
+
+- In particular, [5: fog] is only applied if the environment is partially observable, with the agent_view_size set to 4 (see pommerman.constants.AGENT_VIEW_SIZE), which means the visible area is a 9x9 square around the agent
+
+bomb_blast_strength
+
+- A numpy array of shape (11, 11), specifying bomb positions
+- The bomb positions are specified with the blast strength (default 2 without upgrades), which is the number of tiles the blast will occupy in the four directions
+- If the environment is partially observable, only bombs in view range will be shown
+
+bomb_life
+
+- A numpy array of shape (11, 11), specifying bomb positions
+- The bomb positions are specified with the bomb's life (starts with 10 when it is planted)
+- When bomb's life reaches 0, the bomb explodes
+
+game_type
+
+- The gametype by id
+
+FFA = 1
+Team = 2
+TeamRadio = 3
+
+game_env
+
+- Name of the environment used eg. pommerman.env.v0:Pomme
+
+position
+
+- A tuple containing the x,y-coordinates of the agent
+
+blast_strength
+
+- An integer specifying the blast strength of the bombs planted by the agent
+- Starts at 2 by default
+- Can increase by 1 with every Increase Range pickup, to a maximum of 10
+
+can_kick
+
+- Boolean specifying whether the agent has the Can Kick ability
+
+teammate
+
+- Reference to the teammate
+- 10 is paired with 12; 11 is paired with 13
+
+ammo
+
+- Integer specifying the number of bombs left
+- Starts with 1 by default
+- Planting a bomb reduces the ammo by 1, which is replenished when the bomb explodes
+- Can be increase by 1 with every Extra Bomb pickup, no limit
+
+enemies
+
+- List of references to enemies
+- Always of length 3 (in team games an AgentDummy is appended to make it length 3)
