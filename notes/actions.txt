@@ -13,3 +13,5 @@ Down = 2
 Left = 3
 Right = 4
 Bomb = 5 - Plant a bomb in current position
+
+Note: The `action_space` argument passed to agents in the `act()` method is somewhat redundant. It seems to be simply initialized as `spaces.Discrete(6)` when the environment is initialized and then never changed. Refer to [gym.spaces.Discrete](https://github.com/openai/gym/blob/master/gym/spaces/discrete.py) for documentation on this object.
