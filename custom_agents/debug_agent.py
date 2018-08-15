@@ -25,6 +25,7 @@ class DebugAgent(BaseAgent):
         # Keep track of the previous direction to help with the enemy standoffs.
         self._prev_direction = None
         self.time = 0
+        self._reward = 0
 
     def episode_end(self, reward):
         """This is called at the end of the episode to let the agent know that
@@ -34,6 +35,8 @@ class DebugAgent(BaseAgent):
           reward: The single reward scalar to this agent.
         """
         print(reward)
+        self._reward += reward
+        print('TOTAL REWARD: {}'.format(self._reward))
         pass
 
     def act(self, obs, action_space):
