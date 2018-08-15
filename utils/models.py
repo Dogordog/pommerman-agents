@@ -25,14 +25,14 @@ class BaseModel(object):
 
 class CNN(BaseModel):
 
-	def __init__(self, name, inputs, output_dim):
+	def __init__(self, name, inputs, output_dim, parent):
 		super(CNN, self).__init__()
 		self.name = name
 		self.inputs = inputs
 		self.output_dim = output_dim
 		with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
 			self.build_model()
-			variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name)
+			variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, parent + '/' + self.name)
 			self.saver = tf.train.Saver(var_list=variables, max_to_keep=3)
 
 	def build_model(self):
@@ -40,7 +40,7 @@ class CNN(BaseModel):
 			inputs=self.inputs,
 			filters=16,
 			kernel_size=(3, 3),
-			stride=(1, 1),
+			strides=(1, 1),
 			padding='same',
 			activation=tf.nn.relu,
 			kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
@@ -50,13 +50,13 @@ class CNN(BaseModel):
 			inputs=conv_1,
 			filters=32,
 			kernel_size=(3, 3),
-			stride=(1, 1),
+			strides=(1, 1),
 			padding='same',
 			activation=tf.nn.relu,
 			kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
 			name='conv_2',
 		)
-		unroll = tf.reshape(conv_2, [-1, np.prod(self.input_shape[1:])*32])
+		unroll = tf.reshape(conv_2, [-1, 11*11*32])
 		dense = tf.layers.dense(
 			inputs=unroll,
 			units=self.output_dim,
@@ -67,14 +67,14 @@ class CNN(BaseModel):
 
 class FFN(BaseModel):
 
-	def __init__(self, name, inputs, output_dim):
+	def __init__(self, name, inputs, output_dim, parent):
 		super(FFN, self).__init__()
 		self.name = name
 		self.inputs = inputs
 		self.output_dim = output_dim
 		with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
 			self.build_model()
-			variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name)
+			variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, parent + '/' + self.name)
 			self.saver = tf.train.Saver(var_list=variables, max_to_keep=3)
 
 	def build_model(self):
@@ -82,12 +82,12 @@ class FFN(BaseModel):
 			inputs=self.inputs,
 			units=64,
 			activation=tf.nn.relu,
-			name='dense',
+			name='dense_1',
 		)
 		dense_2 = tf.layers.dense(
 			inputs=dense_1,
 			units=self.output_dim,
 			activation=None,
-			name='dense',
+			name='dense_2',
 		)
 		self.outputs = dense_2

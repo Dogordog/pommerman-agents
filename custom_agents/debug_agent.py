@@ -43,9 +43,10 @@ class DebugAgent(BaseAgent):
         self.time += 1
         # for key in obs: print(key)
         # quit()
-        # print([obs['enemies']])
+        print(obs['enemies'][0].value)
+        quit()
         # if self.time == 10:
-        #     quit()
+        #     quit()X
         def convert_bombs(bomb_map):
             '''Flatten outs the bomb array'''
             ret = []

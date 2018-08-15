@@ -1,5 +1,7 @@
-import models
-import rl
+import numpy as np
+
+from . import models
+from . import rl
 
 
 def sample_dist(dist):
