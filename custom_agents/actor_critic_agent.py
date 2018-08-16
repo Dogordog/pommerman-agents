@@ -135,7 +135,7 @@ class ActorCriticAgent(BaseAgent):
 
 	def update_networks(self):
 		samples = self.memory.sample(8)
-		corrected_values = np.array(samples['predicted_values_1']) - self.discount * np.array(samples['rewards'])
+		corrected_values = self.discount * np.array(samples['predicted_values_1']) + np.array(samples['rewards'])
 		advantages = np.array(corrected_values) - np.array(samples['predicted_values_0'])
 		feed_dict = {
 			self.states: np.array(samples['states_0']),
