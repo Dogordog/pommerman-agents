@@ -43,8 +43,9 @@ class DebugAgent(BaseAgent):
         self.time += 1
         # for key in obs: print(key)
         # quit()
-        print(obs['enemies'][0].value)
-        quit()
+        print(obs['position'])
+        input()
+        # quit()
         # if self.time == 10:
         #     quit()X
         def convert_bombs(bomb_map):

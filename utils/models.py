@@ -39,7 +39,7 @@ class CNN(BaseModel):
 		conv_1 = tf.layers.conv2d(
 			inputs=self.inputs,
 			filters=16,
-			kernel_size=(3, 3),
+			kernel_size=(2, 2),
 			strides=(1, 1),
 			padding='same',
 			activation=tf.nn.relu,
@@ -49,7 +49,7 @@ class CNN(BaseModel):
 		conv_2 = tf.layers.conv2d(
 			inputs=conv_1,
 			filters=32,
-			kernel_size=(3, 3),
+			kernel_size=(2, 2),
 			strides=(1, 1),
 			padding='same',
 			activation=tf.nn.relu,
@@ -80,7 +80,7 @@ class FFN(BaseModel):
 	def build_model(self):
 		dense_1 = tf.layers.dense(
 			inputs=self.inputs,
-			units=64,
+			units=128,
 			activation=tf.nn.relu,
 			name='dense_1',
 		)

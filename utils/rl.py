@@ -44,4 +44,3 @@ class Memory():
 				else:
 					samples[attribute] = np.concatenate([samples[attribute], self.attributes[attribute][idx]], axis=0)
 		return samples
-

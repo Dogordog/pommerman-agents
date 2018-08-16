@@ -1,10 +1,20 @@
 '''An example to show how to set up an pommerman game programmatically'''
+from absl import flags
+from absl import app
+
 import pommerman
 from pommerman import agents
+
 import custom_agents
 
 
-def main():
+FLAGS = flags.FLAGS
+
+flags.DEFINE_bool('load', False, 'Load agent')
+flags.DEFINE_bool('render', False, 'Render environment')
+
+
+def main(unused_args):
     '''Simple function to bootstrap a game.
        
        Use this as an example to set up your training env.
@@ -15,13 +25,13 @@ def main():
     # Create a set of agents (exactly four)
     agent_list = [
         # agents.PlayerAgent(agent_control="arrows"),
-        custom_agents.ActorCriticAgent(name='smith'),
+        custom_agents.ActorCriticAgent(name='smith', savepath='saved_models', load=FLAGS.load),
         # custom_agents.DebugAgent(),
-        custom_agents.SimpleAgent(),
-        custom_agents.SimpleAgent(),
+        agents.SimpleAgent(),
+        agents.SimpleAgent(),
         # agents.SimpleAgent(),
+        # agents.RandomAgent(),
         agents.RandomAgent(),
-        # agents.SimpleAgent(),
         # agents.RandomAgent(),
         # agents.DockerAgent("pommerman/simple-agent", port=12345),
     ]
@@ -30,11 +40,12 @@ def main():
     # env = pommerman.make('PommeTeamCompetition-v0', agent_list)
 
     # Run the episodes just like OpenAI Gym
-    for i_episode in range(2):
+    for i_episode in range(100000):
         state = env.reset()
         done = False
         while not done:
-            # env.render()
+            if FLAGS.render:
+                env.render()
             actions = env.act(state)
             state, reward, done, info = env.step(actions)
         print('Episode {} finished'.format(i_episode))
@@ -43,4 +54,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    app.run(main)
