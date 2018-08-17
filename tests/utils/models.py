@@ -38,7 +38,7 @@ class CNN(BaseModel):
 	def build_model(self):
 		conv_1 = tf.layers.conv2d(
 			inputs=self.inputs,
-			filters=16,
+			filters=8,
 			kernel_size=(2, 2),
 			strides=(1, 1),
 			padding='same',
@@ -48,7 +48,7 @@ class CNN(BaseModel):
 		)
 		conv_2 = tf.layers.conv2d(
 			inputs=conv_1,
-			filters=32,
+			filters=16,
 			kernel_size=(2, 2),
 			strides=(1, 1),
 			padding='same',
@@ -56,7 +56,7 @@ class CNN(BaseModel):
 			kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
 			name='conv_2',
 		)
-		unroll = tf.reshape(conv_2, [-1, 11*11*32])
+		unroll = tf.reshape(conv_2, [-1, 5*5*16])
 		dense = tf.layers.dense(
 			inputs=unroll,
 			units=self.output_dim,
@@ -80,7 +80,7 @@ class FFN(BaseModel):
 	def build_model(self):
 		dense_1 = tf.layers.dense(
 			inputs=self.inputs,
-			units=256,
+			units=64,
 			activation=tf.nn.relu,
 			name='dense_1',
 		)

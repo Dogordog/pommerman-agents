@@ -40,11 +40,14 @@ class DebugAgent(BaseAgent):
         pass
 
     def act(self, obs, action_space):
+        print(self.agent_id)
+        if not self.is_alive:
+            print(self.name + 'DIED')
         self.time += 1
         # for key in obs: print(key)
         # quit()
-        print(obs['position'])
-        input()
+        # print(obs['position'])
+        # input()
         # quit()
         # if self.time == 10:
         #     quit()X
