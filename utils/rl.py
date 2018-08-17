@@ -59,14 +59,48 @@ class Memory():
 		self.attributes['corrected_values'] = corrected_values
 		return corrected_values
 
+class Replay():
 
+	def __init__(self):
+		self.attributes = {
+			'states_0': [],
+			'states_1': [],
+			'rewards': [],
+			'actions': [],
+			'values': [], 
+		}
+		
+	def reset(self):
+		for attribute in self.attributes:
+			self.attributes[attribute] = []
 
+	def store(self, state_0, state_1, reward, action):
+		self.attributes['states_0'].append(state_0)
+		self.attributes['states_1'].append(state_1)
+		self.attributes['rewards'].append([reward])
+		self.attributes['actions'].append([action])
 
+	def bellman(self, value, discount=0.9):
+		values = []
+		for i, reward in enumerate(self.attributes['rewards'][::-1]):
+			step = -(i + 1)
+			assert step < 0, 'ERROR'
+			if step == -1:
+				values.append(discount * np.array(value) + reward[0])
+			else:
+				values.append(discount * np.array(values[i - 1]) + reward[0])
+		self.attributes['values'] = values[::-1]
 
+class ReplayList():
+	def __init__(self):
+		self.replays = []
 
+	def add(self, replay):
+		self.replays.append(replay)
 
-
-
-
+	def save(self, filename):
+		import pickle
+		with open(filename, 'wb') as file:
+			pickle.dump(self, file)
 
 

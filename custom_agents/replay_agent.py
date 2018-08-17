@@ -9,14 +9,15 @@ from pommerman.agents import BaseAgent
 from pommerman import constants
 from pommerman import utility
 
+from utils.rl import Replay, ReplayList
 
-class DebugAgent(BaseAgent):
+class ReplayAgent(BaseAgent):
     """This is a baseline agent. After you can beat it, submit your agent to
     compete.
     """
 
     def __init__(self, *args, **kwargs):
-        super(DebugAgent, self).__init__(*args, **kwargs)
+        super(ReplayAgent, self).__init__(*args, **kwargs)
 
         # Keep track of recently visited uninteresting positions so that we
         # don't keep visiting the same places.
@@ -26,6 +27,17 @@ class DebugAgent(BaseAgent):
         self._prev_direction = None
         self.time = 0
         self._reward = 0
+        self._episodes = 0
+        self.reset_memory()
+
+    def reset_memory(self):
+        self.steps = 0
+        self.memory = Replay()
+        self.long_term_memory = ReplayList()
+        self.prev_state = np.zeros((1, 11, 11, 16))
+        self.prev_action = 0
+        self.prev_ammo = None
+        self.prev_wood_wall = 0
 
     def episode_end(self, reward):
         """This is called at the end of the episode to let the agent know that
@@ -34,25 +46,88 @@ class DebugAgent(BaseAgent):
         Args:
           reward: The single reward scalar to this agent.
         """
+        self._episodes += 1
+
+        self.memory.store(
+            self.prev_state,
+            self.prev_state,
+            reward,
+            self.prev_action
+        )
+        self.memory.bellman([[0]])
+        self.long_term_memory.add(self.memory)
         print(reward)
         self._reward += reward
         print('TOTAL REWARD: {}'.format(self._reward))
+        if self._episodes % 5 == 0:
+            self.long_term_memory.save('replays/data.pkl')
+            print('Memory saved')
         pass
 
+    def process_observation(self, board, position, bomb_life, bomb_blast_strength, enemies):
+        state = None
+        for i in np.arange(10):
+            if state is None:
+                state = np.expand_dims((board == i).astype(np.float32), axis=-1)
+            else:
+                state = np.concatenate([state, np.expand_dims((board == i).astype(np.float32), axis=-1)], axis=-1)
+        
+        enemy_positions = None
+        valid_ids = [10, 11, 12, 13]
+        valid_ids.pop(self.agent_id) # self.agent_id goes from 0 to 3
+        for enemy in enemies:
+            enemy_id = enemy.value
+            if enemy_id in valid_ids:
+                valid_ids.pop(valid_ids.index(enemy_id))
+            if enemy_positions is None:
+                enemy_positions = np.expand_dims((board == enemy_id).astype(np.float32), axis=-1)
+            else:
+                enemy_positions += np.expand_dims((board == enemy_id).astype(np.float32), axis=-1)
+        state = np.concatenate([state, enemy_positions], axis=-1)
+
+        # No ally for FFA
+        # ally_id = valid_ids[0]
+        # ally_position = np.expand_dims((board == ally_id).astype(np.float32), axis=-1)
+        # state = np.concatenate([state, ally_position], axis=-1)
+
+        self_position = np.zeros_like(enemy_positions)
+        self_position[position[0], position[1]] = 1
+        state = np.concatenate([state, self_position], axis=-1)
+
+        if self.can_kick == True:
+            can_kick = np.ones_like(self_position)
+        else:
+            can_kick = np.zeros_like(self_position)
+        state = np.concatenate([state, can_kick], axis=-1)
+
+        ammo = np.ones_like(self_position) * self.ammo
+        state = np.concatenate([state, ammo], axis=-1)
+
+        state = np.concatenate([state, np.expand_dims(bomb_life, axis=-1)], axis=-1)
+        state = np.concatenate([state, np.expand_dims(bomb_blast_strength, axis=-1)], axis=-1)
+
+        return np.expand_dims(state, axis=0)
+
     def act(self, obs, action_space):
-        # print(self.agent_id)
-        # if not self.is_alive:
-        #     print(self.name + 'DIED')
-        self.time += 1
-        print(self.ammo)
-        print(np.sum(obs['board']==2))
-        # for key in obs: print(key)
-        # quit()
-        # print(obs['position'])
-        # input()
-        # quit()
-        # if self.time == 10:
-        #     quit()X
+        if self.prev_ammo is None:
+            self.prev_ammo = self.ammo
+            self.prev_blast_strength = self.blast_strength
+            self.prev_can_kick = self.can_kick
+            self.prev_wood_wall = np.sum(obs['board'] == 2)
+        self.steps += 1
+        state = self.process_observation(obs['board'], obs['position'], obs['bomb_life'], obs['bomb_blast_strength'], obs['enemies'])
+        self.memory.store(
+            self.prev_state,
+            state,
+            0,
+            self.prev_action
+        )
+        self.prev_state = state
+        self.prev_ammo = self.ammo
+        self.prev_blast_strength = self.blast_strength
+        self.prev_can_kick = self.can_kick
+        self.prev_wood_wall = np.sum(obs['board'] == 2)
+        
         def convert_bombs(bomb_map):
             '''Flatten outs the bomb array'''
             ret = []
@@ -79,31 +154,43 @@ class DebugAgent(BaseAgent):
         if unsafe_directions:
             directions = self._find_safe_directions(
                 board, my_position, unsafe_directions, bombs, enemies)
-            return random.choice(directions).value
+            action = random.choice(directions).value
+            self.prev_action = action
+            return action
 
         # Lay pomme if we are adjacent to an enemy.
         if self._is_adjacent_enemy(items, dist, enemies) and self._maybe_bomb(
                 ammo, blast_strength, items, dist, my_position):
-            return constants.Action.Bomb.value
+            action = constants.Action.Bomb.value
+            self.prev_action = action
+            return action
 
         # Move towards an enemy if there is one in exactly three reachable spaces.
         direction = self._near_enemy(my_position, items, dist, prev, enemies, 3)
         if direction is not None and (self._prev_direction != direction or
                                       random.random() < .5):
             self._prev_direction = direction
-            return direction.value
+            action = direction.value
+            self.prev_action = action
+            return action
 
         # Move towards a good item if there is one within two reachable spaces.
         direction = self._near_good_powerup(my_position, items, dist, prev, 2)
         if direction is not None:
-            return direction.value
+            action = direction.value
+            self.prev_action = action
+            return action
 
         # Maybe lay a bomb if we are within a space of a wooden wall.
         if self._near_wood(my_position, items, dist, prev, 1):
             if self._maybe_bomb(ammo, blast_strength, items, dist, my_position):
-                return constants.Action.Bomb.value
+                action = constants.Action.Bomb.value
+                self.prev_action = action
+                return action
             else:
-                return constants.Action.Stop.value
+                action = constants.Action.Stop.value
+                self.prev_action = action
+                return action
 
         # Move towards a wooden wall if there is one within two reachable spaces and you have a bomb.
         direction = self._near_wood(my_position, items, dist, prev, 2)
@@ -111,7 +198,9 @@ class DebugAgent(BaseAgent):
             directions = self._filter_unsafe_directions(board, my_position,
                                                         [direction], bombs)
             if directions:
-                return directions[0].value
+                action = directions[0].value
+                self.prev_action = action
+                return action
 
         # Choose a random but valid direction.
         directions = [
@@ -133,8 +222,9 @@ class DebugAgent(BaseAgent):
         self._recently_visited_positions.append(my_position)
         self._recently_visited_positions = self._recently_visited_positions[
             -self._recently_visited_length:]
-
-        return random.choice(directions).value
+        action = random.choice(directions).value
+        self.prev_action = action
+        return action
 
     @staticmethod
     def _djikstra(board, my_position, bombs, enemies, depth=None, exclude=None):

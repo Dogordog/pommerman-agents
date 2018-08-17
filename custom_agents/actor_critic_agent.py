@@ -92,11 +92,11 @@ class ActorCriticAgent(BaseAgent):
 		
 		# Calculate reward
 		# Add subreward for collecting powerups and destroying wooden blocks
-		# if self.prev_ammo == (self.ammo - 1) and self.prev_wood_wall != np.sum(obs['board'] == 2): # need to differentiate between ammo decreasing, ammo returning to me and ammo increasing due to powerup
-		# 	print('WOOD DESTROYED')
-		# 	# print('AMMO CHANGED')
-		# 	reward = 1.
-		if self.prev_blast_strength != self.blast_strength:
+		if self.prev_ammo == (self.ammo - 1) and self.prev_wood_wall != np.sum(obs['board'] == 2): # need to differentiate between ammo decreasing, ammo returning to me and ammo increasing due to powerup
+			print('WOOD DESTROYED')
+			# print('AMMO CHANGED')
+			reward = 1.
+		elif self.prev_blast_strength != self.blast_strength:
 			print('STRENGTH CHANGED')
 			reward = 5.
 		elif self.prev_can_kick != self.can_kick:
@@ -137,6 +137,11 @@ class ActorCriticAgent(BaseAgent):
 		return action
 
 	def build_model(self):
+		self.replay_actions = tf.placeholder(
+			shape=(None, ACTIONS_SIZE),
+			dtype=tf.float32,
+			name='replay_actions',
+		)
 		self.states = tf.placeholder(
 			shape=(None, 11, 11, 16), # types of values in obs['board'], compressing 10-13 to self, allies and enemies
 			dtype=tf.float32,
@@ -186,6 +191,10 @@ class ActorCriticAgent(BaseAgent):
 		self.policy_loss = policy_loss = -tf.reduce_sum(tf.log(tf.clip_by_value(tf.reduce_sum(self.predicted_actions * self.actions_taken_onehot, axis=1), 1e-20, 1.0)) * self.advantages)
 		self.loss = 0.5 * value_loss - 0.1 * entropy_loss + policy_loss
 		self.optimize = tf.train.AdamOptimizer(1e-4).minimize(self.loss)
+
+		self.replay_action_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.replay_actions, logits=self.policy_network.outputs))
+		self.replay_loss = self.value_loss + self.replay_action_loss
+		self.replay_optimize = tf.train.AdamOptimizer(1e-4).minimize(self.replay_loss)
 
 	def update_networks(self, v):
 		self.memory.discount_values(v, discount=self.discount)
