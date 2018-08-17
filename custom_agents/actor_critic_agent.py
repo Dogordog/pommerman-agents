@@ -25,7 +25,7 @@ class ActorCriticAgent(BaseAgent):
 		self.savepath = savepath
 		self.reset_memory()
 		self.update_every = 10
-		self.discount = 0.99
+		self.discount = 0.9
 		self.sess = tf.Session()
 		self.wins = 0
 		self.losses = 0
@@ -54,14 +54,13 @@ class ActorCriticAgent(BaseAgent):
 			self.wins += 1
 		else:
 			self.losses += 1
-			reward = -5
 		# Store rollout with episode reward
 		self.memory.store(
 			self.prev_state,
 			self.prev_state,
 			self.prev_value,
 			[[0]],
-			reward,
+			reward*5,
 			self.prev_action
 		)
 		if ((self.episodes - self.update_turn) % 4) == 0:
