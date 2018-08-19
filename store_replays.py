@@ -25,7 +25,10 @@ def main(unused_args):
     # Create a set of agents (exactly four)
     agent_list = [
         # agents.PlayerAgent(agent_control="arrows"),
-        custom_agents.ReplayAgent(),
+        custom_agents.ReplayAgent('0'),
+        custom_agents.ReplayAgent('1'),
+        custom_agents.ReplayAgent('2'),
+        custom_agents.ReplayAgent('3'),
         # custom_agents.ActorCriticAgent(name='smith', update_turn=0, savepath='saved_models', load=FLAGS.load),
         # custom_agents.ActorCriticAgent(name='smith', update_turn=1, savepath='saved_models', load=FLAGS.load),
         # custom_agents.ActorCriticAgent(name='smith', update_turn=2, savepath='saved_models', load=FLAGS.load),
@@ -37,9 +40,9 @@ def main(unused_args):
         # custom_agents.DebugAgent(),
         # custom_agents.DebugAgent(),
         # custom_agents.DebugAgent(),
-        agents.SimpleAgent(),
-        agents.SimpleAgent(),
-        agents.SimpleAgent(),
+        # agents.SimpleAgent(),
+        # agents.SimpleAgent(),
+        # agents.SimpleAgent(),
         # agents.RandomAgent(),
         # agents.RandomAgent(),
         # agents.RandomAgent(),
@@ -50,7 +53,7 @@ def main(unused_args):
     # env = pommerman.make('PommeTeamCompetition-v0', agent_list)
 
     # Run the episodes just like OpenAI Gym
-    for i_episode in range(int(5)):
+    for i_episode in range(int(100)):
         state = env.reset()
         done = False
         while not done:

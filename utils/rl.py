@@ -13,9 +13,11 @@ class Memory():
 			'actions': [],
 			'corrected_values': [],
 		}
+		self.long_term = {}
 		self.rand = {}
 		for attribute in self.attributes:
 			self.rand[attribute] = np.random.RandomState(42)
+			self.long_term[attribute] = []
 
 	def reset(self):
 		for attribute in self.attributes:
@@ -34,16 +36,15 @@ class Memory():
 			self.rand[attribute].shuffle(self.attributes[attribute])
 
 	def sample(self, size, shuffle=True):
-		if shuffle:
-			self.shuffle()
+		size = min(size, len(self.long_term['states_0']))
 		samples = {}
 		for _ in range(size):
-			idx = np.random.choice(len(self.attributes['states_0']))
-			for attribute in self.attributes:
+			idx = np.random.choice(len(self.long_term['states_0']))
+			for attribute in self.long_term:
 				if attribute not in samples:
-					samples[attribute] = self.attributes[attribute][idx]
+					samples[attribute] = self.long_term[attribute][idx]
 				else:
-					samples[attribute] = np.concatenate([samples[attribute], self.attributes[attribute][idx]], axis=0)
+					samples[attribute] = np.concatenate([samples[attribute], self.long_term[attribute][idx]], axis=0)
 		return samples
 
 	def discount_values(self, v, discount):
@@ -54,10 +55,18 @@ class Memory():
 			if step == -1:
 				corrected_values.append(discount * np.array(v) + self.attributes['rewards'][step][0])
 			else:
-				corrected_values.append(discount * np.array(corrected_values[i - 1]) + self.attributes['rewards'][step])
+				corrected_values.append(discount * np.array(corrected_values[i - 1]) + self.attributes['rewards'][step][0])
 		corrected_values = corrected_values[::-1]
 		self.attributes['corrected_values'] = corrected_values
+		self.update_long_term()
+		self.reset()
 		return corrected_values
+
+	def update_long_term(self):
+		for attribute in self.attributes:
+			self.long_term[attribute] += self.attributes[attribute]
+			if len(self.long_term[attribute]) > 200:
+				self.long_term[attribute] = self.long_term[attribute][-200:]
 
 class Replay():
 

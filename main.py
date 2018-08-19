@@ -25,22 +25,20 @@ def main(unused_args):
     # Create a set of agents (exactly four)
     agent_list = [
         # agents.PlayerAgent(agent_control="arrows"),
-        custom_agents.ActorCriticAgent(name='smith', update_turn=0, savepath='saved_models', load=FLAGS.load),
+        custom_agents.ActorCriticAgent(name='smith', update_turn=0, savepath='saved_models', load=FLAGS.load, load_replay=False),
         # custom_agents.ActorCriticAgent(name='smith', update_turn=1, savepath='saved_models', load=FLAGS.load),
         # custom_agents.ActorCriticAgent(name='smith', update_turn=2, savepath='saved_models', load=FLAGS.load),
         # custom_agents.ActorCriticAgent(name='smith', update_turn=3, savepath='saved_models', load=FLAGS.load),
         # custom_agents.ActorCriticAgent(name='john', savepath='saved_models', load=FLAGS.load),
         # custom_agents.ActorCriticAgent(name='romanov', savepath='saved_models', load=FLAGS.load),
         # custom_agents.ActorCriticAgent(name='witch', savepath='saved_models', load=FLAGS.load),
+        custom_agents.StaticAgent(),
+        custom_agents.StaticAgent(),
+        custom_agents.StaticAgent(),
         # custom_agents.DebugAgent(),
-        # custom_agents.DebugAgent(),
-        # custom_agents.DebugAgent(),
-        # custom_agents.DebugAgent(),
-        agents.SimpleAgent(),
-        agents.SimpleAgent(),
-        agents.SimpleAgent(),
-        # agents.RandomAgent(),
-        # agents.RandomAgent(),
+        # agents.SimpleAgent(),
+        # agents.SimpleAgent(),
+        # agents.SimpleAgent(),
         # agents.RandomAgent(),
         # agents.DockerAgent("pommerman/simple-agent", port=12345),
     ]
@@ -56,10 +54,18 @@ def main(unused_args):
             if FLAGS.render:
                 env.render()
             actions = env.act(state)
+            print(actions)
+            quit()
             state, reward, done, info = env.step(actions)
+            # if len(state[0]['alive']) < 4:
+            #     reward = agent_list[0].episode_end(-1)
+            #     break
             # input()
-        print('Episode {} finished'.format(i_episode))
-        print(info)
+        reward = agent_list[0].prev_sub_reward
+        avg_reward = agent_list[0].avg_sub_reward
+        if i_episode % 5 == 0:
+            print('Episode {} finished - Reward: {:.3f} - Avg: {:.3f}'.format(i_episode, reward, avg_reward))
+            # print(info)
     env.close()
 
 

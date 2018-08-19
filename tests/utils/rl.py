@@ -13,8 +13,10 @@ class Memory():
 			'actions': [],
 			'corrected_values': [],
 		}
+		self.long_term_attributes = {}
 		self.rand = {}
 		for attribute in self.attributes:
+			self.long_term_attributes
 			self.rand[attribute] = np.random.RandomState(42)
 
 	def reset(self):
@@ -34,8 +36,7 @@ class Memory():
 			self.rand[attribute].shuffle(self.attributes[attribute])
 
 	def sample(self, size, shuffle=True):
-		if shuffle:
-			self.shuffle()
+		size = min(len(self.attributes['states_0']), size)
 		samples = {}
 		for _ in range(size):
 			idx = np.random.choice(len(self.attributes['states_0']))
@@ -54,9 +55,13 @@ class Memory():
 			if step == -1:
 				corrected_values.append(discount * np.array(v) + self.attributes['rewards'][step][0])
 			else:
-				corrected_values.append(discount * np.array(corrected_values[i - 1]) + self.attributes['rewards'][step])
+				corrected_values.append(discount * np.array(corrected_values[i - 1]) + self.attributes['rewards'][step][0])
 		corrected_values = corrected_values[::-1]
 		self.attributes['corrected_values'] = corrected_values
+		# print(v)
+		# for i, value in enumerate(corrected_values):
+		# 	print(value[0][0], self.attributes['rewards'][i][0], self.attributes['predicted_values_0'][i][0][0])
+		# quit()
 		return corrected_values
 
 

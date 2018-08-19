@@ -16,9 +16,9 @@ class ReplayAgent(BaseAgent):
     compete.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name, *args, **kwargs):
         super(ReplayAgent, self).__init__(*args, **kwargs)
-
+        self.name = name
         # Keep track of recently visited uninteresting positions so that we
         # don't keep visiting the same places.
         self._recently_visited_positions = []
@@ -59,8 +59,8 @@ class ReplayAgent(BaseAgent):
         print(reward)
         self._reward += reward
         print('TOTAL REWARD: {}'.format(self._reward))
-        if self._episodes % 5 == 0:
-            self.long_term_memory.save('replays/data.pkl')
+        if self._episodes % 100 == 0:
+            self.long_term_memory.save('replays/data_{}.pkl'.format(self.name))
             print('Memory saved')
         pass
 
@@ -104,8 +104,22 @@ class ReplayAgent(BaseAgent):
         state = np.concatenate([state, ammo], axis=-1)
 
         state = np.concatenate([state, np.expand_dims(bomb_life, axis=-1)], axis=-1)
-        state = np.concatenate([state, np.expand_dims(bomb_blast_strength, axis=-1)], axis=-1)
-
+        
+        bomb_blast_board = np.zeros_like(self_position)
+        bomb_x, bomb_y = np.where(bomb_blast_strength != 0)
+        for i, _ in enumerate(bomb_x):
+            strength = bomb_blast_strength[bomb_x[i], bomb_y[i]]
+            for j in np.arange(strength):
+                if bomb_x[i] + j < 11:
+                    bomb_blast_board[int(bomb_x[i] + j), int(bomb_y[i]), 0] = 1
+                if bomb_y[i] + j < 11:
+                    bomb_blast_board[int(bomb_x[i]), int(bomb_y[i] + j), 0] = 1
+                if bomb_x[i] - j >= 0:
+                    bomb_blast_board[int(bomb_x[i] - j), int(bomb_y[i]), 0] = 1
+                if bomb_y[i] - j >= 0:
+                    bomb_blast_board[int(bomb_x[i]), int(bomb_y[i] - j), 0] = 1
+        state = np.concatenate([state, bomb_blast_board], axis=-1)
+        
         return np.expand_dims(state, axis=0)
 
     def act(self, obs, action_space):

@@ -14,8 +14,8 @@ class ActorCriticAgent():
 		self.name = 'agent'
 		self.savepath = savepath
 		self.reset_memory()
-		self.update_every = 10
-		self.discount = 0.5
+		self.update_every = 30
+		self.discount = 0.99
 		self.sess = tf.Session()
 		with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
 			self.build_model()
@@ -30,33 +30,33 @@ class ActorCriticAgent():
 	def reset_memory(self):
 		self.steps = 0
 		self.memory = Memory()
-		self.prev_state = np.zeros((1, 5, 5, 1))
+		self.prev_state = np.zeros((1, 5, 5, 2))
 		self.prev_value = [[0]]
 		self.prev_action = 0
 		self.prev_ammo = None
 
-	def episode_end(self, reward):
+	def episode_end(self, end, reward):
 		# Store rollout with episode reward
 		self.memory.store(
 			self.prev_state,
 			self.prev_state,
 			self.prev_value,
 			[[0]],
-			reward,
+			end+reward,
 			self.prev_action
 		)
 		loss, v_loss, e_loss, p_loss = self.update_networks(v=[[0]])
 		if self.savepath is not None:
 			self.save(self.sess, self.savepath)
-		if reward == -1:
+		if end == -1:
 			print('End of Episode: LOSS')
-		elif reward == 1:
+		elif end == 1:
 			print('End of Episode: WON')
 		else:
 			print('ERROR')
 		self.reset_memory()
 
-	def act(self, obs):
+	def act(self, obs, reward=None):
 		self.steps += 1
 		# Store rollout
 		#	reward = 0 until end of game
@@ -69,23 +69,24 @@ class ActorCriticAgent():
 		
 		# Calculate reward
 		# Add subreward for collecting powerups
-		reward = 0
+		# reward = 0
 		
-		self.memory.store(
-			self.prev_state,
-			state,
-			self.prev_value,
-			predicted_value,
-			reward,
-			self.prev_action
-		)
-		# Update networks
-		if self.steps % self.update_every == 0:
-			loss, v_loss, e_loss, p_loss = self.update_networks(v=predicted_value)
-			self.memory.reset()
-			# print('Step #{} - Loss: {:.3f}'.format(self.steps, loss))
-			# print('Value Loss: {:.3f} - Entropy Loss: {:.3f} - Policy Loss: {:.3f}'.format(v_loss, e_loss, p_loss))
-		# Take action
+		if reward is not None:
+			self.memory.store(
+				self.prev_state,
+				state,
+				self.prev_value,
+				predicted_value,
+				reward,
+				self.prev_action
+			)
+			# Update networks
+			if self.steps % self.update_every == 0:
+				loss, v_loss, e_loss, p_loss = self.update_networks(v=predicted_value)
+				self.memory.reset()
+				# print('Step #{} - Loss: {:.3f}'.format(self.steps, loss))
+				# print('Value Loss: {:.3f} - Entropy Loss: {:.3f} - Policy Loss: {:.3f}'.format(v_loss, e_loss, p_loss))
+			# Take action
 		action = sample_dist(action_dist[0])
 
 		self.prev_state = state
@@ -96,7 +97,7 @@ class ActorCriticAgent():
 
 	def build_model(self):
 		self.states = tf.placeholder(
-			shape=(None, 5, 5, 1), # types of values in obs['board'], compressing 10-13 to self, allies and enemies
+			shape=(None, 5, 5, 2), # types of values in obs['board'], compressing 10-13 to self, allies and enemies
 			dtype=tf.float32,
 			name='state'
 		)
@@ -142,12 +143,12 @@ class ActorCriticAgent():
 		self.value_loss = value_loss = tf.losses.mean_squared_error(labels=self.bootstrapped_values, predictions=self.value_network.outputs)
 		self.entropy_loss = entropy_loss = -tf.reduce_sum(tf.log(tf.clip_by_value(self.predicted_actions, 1e-20, 1.0)) * self.predicted_actions)
 		self.policy_loss = policy_loss = -tf.reduce_sum(tf.log(tf.clip_by_value(tf.reduce_sum(self.predicted_actions * self.actions_taken_onehot, axis=1), 1e-20, 1.0)) * self.advantages)
-		self.loss = 0.5 * value_loss - 0.1 * entropy_loss + policy_loss
+		self.loss = 0.5 * value_loss - 0.01 * entropy_loss + policy_loss
 		self.optimize = tf.train.AdamOptimizer(1e-4).minimize(self.loss)
 
 	def update_networks(self, v):
 		self.memory.discount_values(v, discount=self.discount)
-		samples = self.memory.sample(8)
+		samples = self.memory.sample(16)
 		# corrected_values = self.discount * np.array(samples['predicted_values_1']) + np.array(samples['rewards'])
 		advantages = np.array(samples['corrected_values']) - np.array(samples['predicted_values_0'])
 		feed_dict = {
