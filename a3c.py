@@ -211,9 +211,9 @@ class Worker():
 		print('Initializing environment #{}...'.format(self.number))
 		agent_list = [
 			custom_agents.StaticAgent(),
-			custom_agents.StaticAgent(),
-			custom_agents.StaticAgent(),
-			custom_agents.StaticAgent(),
+			agents.SimpleAgent(),
+			agents.SimpleAgent(),
+			agents.SimpleAgent(),
 		]
 		self.env = pommerman.make('PommeFFACompetition-v0', agent_list)
 		self.agent = agent_list[0]
@@ -273,7 +273,8 @@ class Worker():
 				prev_wood_wall = np.sum(obs[0]['board'] == 2)
 				episode_end = False
 				
-				while not episode_end:
+				while not episode_end and 10 in obs[0]['alive']:
+					
 					# Take an action using distributions from policy networks' outputs.
 					action_dist, v = sess.run(
 						[
@@ -292,7 +293,10 @@ class Worker():
 					actions = self.env.act(obs)
 					obs, r, episode_end, info = self.env.step([action] + actions[1:])
 					wood_wall = np.sum(obs[0]['board'] == 2)
-					if self.agent.prev_ammo == (self.agent.ammo - 1) and prev_wood_wall != wood_wall: # need to differentiate between ammo decreasing, ammo returning to me and ammo increasing due to powerup
+					
+					if self.agent.prev_enemies != (len(obs[0]['alive']) - 1) and 10 in obs[0]['alive']:
+						r = 10.
+					elif self.agent.prev_ammo == (self.agent.ammo - 1) and prev_wood_wall != wood_wall: # need to differentiate between ammo decreasing, ammo returning to me and ammo increasing due to powerup
 						r = 1.
 					else:
 						r = 0.
@@ -337,8 +341,9 @@ class Worker():
 					_max_score = episode_reward
 				_running_avg_score = (2.0 / 101) * (episode_reward - _running_avg_score) + _running_avg_score
 
-				print("{} Step #{} Episode #{} Reward: {}".format(self.name, total_steps, episode_count, episode_reward))
-				print("Total Steps: {}\tTotal Episodes: {}\tMax Score: {}\tAvg Score: {:.3f}".format(sess.run(self.global_steps), sess.run(self.global_episodes), _max_score, _running_avg_score))
+				if episode_count % 10 == 0:
+					print("{} Step #{} Episode #{} Reward: {}".format(self.name, total_steps, episode_count, episode_reward))
+					print("Total Steps: {}\tTotal Episodes: {}\tMax Score: {}\tAvg Score: {:.3f}".format(sess.run(self.global_steps), sess.run(self.global_episodes), _max_score, _running_avg_score))
 
 				# Update the network using the episode buffer at the end of the episode.
 				if len(episode_buffer) != 0:
@@ -403,17 +408,21 @@ def main(unused_args):
 			saver.restore(sess, ckpt.model_checkpoint_path)
 		else:
 			sess.run(tf.global_variables_initializer())
-			
-		# This is where the asynchronous magic happens.
-		# Start the "work" process for each worker in a separate thread.
-		worker_threads = []
-		for worker in workers:
-			worker_work = lambda: worker.work(max_episode_length, gamma, sess, coord, saver)
-			t = threading.Thread(target=(worker_work))
-			t.start()
-			sleep(0.5)
-			worker_threads.append(t)
-		coord.join(worker_threads)
+
+		if FLAGS.render:
+			# Rendering doesn't seem to work in threads
+			workers[0].work(max_episode_length, gamma, sess, coord, saver)
+		else:
+			# This is where the asynchronous magic happens.
+			# Start the "work" process for each worker in a separate thread.
+			worker_threads = []
+			for worker in workers:
+				worker_work = lambda: worker.work(max_episode_length, gamma, sess, coord, saver)
+				t = threading.Thread(target=(worker_work))
+				t.start()
+				sleep(0.5)
+				worker_threads.append(t)
+			coord.join(worker_threads)
 
 if __name__ == '__main__':
 	flags.DEFINE_bool('load', False, 'Load')

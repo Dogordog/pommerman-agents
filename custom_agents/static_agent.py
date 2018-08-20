@@ -11,6 +11,7 @@ class StaticAgent(BaseAgent):
     def __init__(self, *args, **kwargs):
         super(StaticAgent, self).__init__(*args, **kwargs)
         self.prev_ammo = 1
+        self.prev_enemies = 3
 
     def episode_end(self, reward):
         """This is called at the end of the episode to let the agent know that
@@ -20,8 +21,10 @@ class StaticAgent(BaseAgent):
           reward: The single reward scalar to this agent.
         """
         self.prev_ammo = 1
+        self.prev_enemies = 3
         pass
 
     def act(self, obs, action_space):
         self.prev_ammo = self.ammo
+        self.prev_enemies = len(obs['alive']) - 1
         return 0
