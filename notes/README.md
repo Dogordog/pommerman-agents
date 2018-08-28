@@ -23,3 +23,5 @@ I will also find time to post material at [greentfrapp.github.io](https://greent
 - Auxiliary Tasks (Pixel Control) paper by Jaderberg et al. (2016) and [blog post](https://deepmind.com/blog/reinforcement-learning-unsupervised-auxiliary-tasks/).
 
 [Jaderberg, Max, et al. "Reinforcement learning with unsupervised auxiliary tasks." arXiv preprint arXiv:1611.05397 (2016).](https://arxiv.org/abs/1611.05397)
+
+- [Dopamine](https://github.com/google/dopamine) library for reinforcement learning with Tensorflow
